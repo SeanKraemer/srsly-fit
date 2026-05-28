@@ -1,0 +1,37 @@
+Successfully connected to the database.
+Clearing existing data from tables for a fresh import...
+  Clearing table `WorkoutContents`...
+  Clearing table `WorkoutTemplates`...
+  Clearing table `Sets`...
+  Clearing table `ExerciseLog`...
+  Clearing table `ExercisesMuscles`...
+  Clearing table `Exercises`...
+  Clearing table `Muscles`...
+  Clearing table `Users`...
+All tables cleared.
+
+--- Starting import for table: `Users` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/Users.csv` ---
+--- Successfully imported 2 rows into `Users`. ---
+
+--- Starting import for table: `Muscles` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/Muscles.csv` ---
+--- Successfully imported 17 rows into `Muscles`. ---
+
+--- Starting import for table: `Exercises` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/Exercises.csv` ---
+--- Successfully imported 2920 rows into `Exercises`. ---
+
+--- Starting import for table: `ExercisesMuscles` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/ExercisesMuscles.csv` ---
+--- Successfully imported 2918 rows into `ExercisesMuscles`. ---
+
+--- Starting import for table: `ExerciseLog` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/ExerciseLog.csv` ---
+--- Successfully imported 5838 rows into `ExerciseLog`. ---
+
+--- Starting import for table: `Sets` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/Sets.csv` ---
+--- Successfully imported 5863 rows into `Sets`. ---
+
+--- Starting import for table: `WorkoutTemplates` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/WorkoutTemplates.csv` ---
+--- Successfully imported 16 rows into `WorkoutTemplates`. ---
+
+--- Starting import for table: `WorkoutContents` from `/Users/seankraemer/My Drive (seanmk2@illinois.edu)/iCAN/CS 411/data/WorkoutContents.csv` ---
+--- Successfully imported 86 rows into `WorkoutContents`. ---
+
+All tasks complete. Database connection closed.

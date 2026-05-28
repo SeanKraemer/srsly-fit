@@ -1,0 +1,22 @@
+runtime: nodejs20
+
+env:
+  - variable: AUTH_SECRET
+    value: "SET_AUTH_SECRET_IN_HOSTING"
+    availability:
+      - RUNTIME
+
+  - variable: AUTH_TRUST_HOST
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: DATABASE_URL
+    value: "SET_DATABASE_URL_IN_HOSTING"
+    availability:
+      - RUNTIME
+
+  - variable: YOUTUBE_API_KEY
+    value: "SET_YOUTUBE_API_KEY_IN_HOSTING"
+    availability:
+      - RUNTIME
