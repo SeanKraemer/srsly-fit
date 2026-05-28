@@ -20,9 +20,15 @@ export default async function VideoComponent({ exerciseName }: Props) {
 }
 
 async function getVideoSrc(exerciseName: string): Promise<string> {
+  const fallbackVideo = "https://www.youtube.com/embed/bZq2D3kdwdY?rel=0";
+
   // Add fitness-specific terms to narrow down results
   const searchQuery = `${exerciseName} workout exercise proper form demonstration`;
   const apiKey = env.YOUTUBE_API_KEY;
+  if (!apiKey || apiKey.startsWith("SET_")) {
+    return fallbackVideo;
+  }
+
   const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&key=${apiKey}&maxResults=1&type=video&order=relevance&videoCategoryId=17&regionCode=US`;
 
 
@@ -43,9 +49,9 @@ async function getVideoSrc(exerciseName: string): Promise<string> {
       return `https://www.youtube.com/embed/${videoId}?rel=0`;
     }
     
-    return "https://www.youtube.com/watch?v=bZq2D3kdwdY";
+    return fallbackVideo;
   } catch (error) {
     console.error('Error fetching YouTube video:', error);
-    return "https://www.youtube.com/watch?v=bZq2D3kdwdY";
+    return fallbackVideo;
   }
 }
