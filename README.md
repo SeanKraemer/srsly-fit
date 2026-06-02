@@ -4,6 +4,8 @@ Srsly Fit is a full-stack workout planning and tracking app built with Next.js, 
 
 This portfolio version is prepared for public review with a safe read-only demo mode. Demo mode uses seeded fixtures, a demo login, and a static video fallback, so it can run without live database credentials or YouTube API quota.
 
+Live demo: [https://srsly-fit.vercel.app](https://srsly-fit.vercel.app)
+
 ## My Contribution
 
 I owned the public-ready full-stack pass for this app: Next.js routing and UI cleanup, credentials auth integration, MySQL query and stored-procedure integration, workout/exercise flows, demo-mode isolation, environment documentation, and deployment-safety notes.
