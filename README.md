@@ -1,70 +1,92 @@
 # Srsly Fit
 
-Srsly Fit is a workout planning web app built with Next.js, MySQL, and NextAuth. The app lets users manage exercises, build workout templates, track completed sets, and view exercise demonstration videos.
+Srsly Fit is a full-stack workout planning and tracking app built with Next.js, React, NextAuth, and MySQL. It supports exercise search, workout templates, set tracking, completion history, and exercise demonstration videos.
 
-This repository is a private portfolio copy prepared from a team database systems project. It has been sanitized for eventual public release: live credentials were removed, local environment files are ignored, and course submission instructions were replaced with project-focused setup notes.
+This portfolio version is prepared for public review with a safe read-only demo mode. Demo mode uses seeded fixtures, a demo login, and a static video fallback, so it can run without live database credentials or YouTube API quota.
+
+## My Contribution
+
+I owned the public-ready full-stack pass for this app: Next.js routing and UI cleanup, credentials auth integration, MySQL query and stored-procedure integration, workout/exercise flows, demo-mode isolation, environment documentation, and deployment-safety notes.
 
 ## What It Does
 
-- Authenticates users with a credentials-based login flow.
-- Stores exercises, muscles, workout templates, workout contents, exercise logs, and set history in MySQL.
-- Suggests exercises for a workout using a query over prior completion history.
-- Embeds a relevant exercise demonstration video through the YouTube Data API when configured.
-- Falls back to a static demonstration video when no YouTube API key is available.
+- Authenticates users with a credentials-based NextAuth flow.
+- Lists and filters exercises by keyword and target muscle.
+- Lets users view exercise details and embedded demonstration videos.
+- Builds workout templates with ordered exercises and sets.
+- Tracks workout completion duration and exercise history in live mode.
+- Suggests exercises based on prior completion history in live mode or seeded fixtures in demo mode.
 
-## Tech Stack
+## Architecture
 
-- Next.js 15 and React 19
-- TypeScript
-- MySQL through `mysql2`
-- NextAuth beta
-- Tailwind CSS
-- Firebase App Hosting configuration for deployment
+- `src/app`: Next.js App Router pages and API routes.
+- `src/components`: Client and server UI components for navigation, search, workout editing, cards, and auth forms.
+- `src/data`: Demo/live data boundary. Demo mode returns fixtures; live mode calls MySQL through the lazy pool in `src/database/pool.ts`.
+- `src/database`: MySQL schema, import helper, and query/procedure setup references.
+- `src/utils/auth.ts`: NextAuth configuration for demo credentials and live MySQL-backed credentials.
 
-## Local Setup
+## Project Documentation
+
+The `docs/` directory includes the database design artifacts and an archived Summer 2025 project document for additional context on the original product scope and data model.
+
+For local server, MySQL, and seed-data commands, see [`docs/local-development-cheatsheet.md`](docs/local-development-cheatsheet.md).
+
+## Quick Start
 
 ```bash
-cd fitness-pal
 npm install
-cp .env.example .env.local
-npm run dev
+npm run demo
 ```
 
-Then open `http://localhost:3000`.
+Open `http://localhost:3000`, then choose **Continue as Demo User**.
+
+Demo mode is read-only. Create, update, delete, and save actions return clear read-only messages instead of writing to a database.
 
 ## Environment
 
-Create `fitness-pal/.env.local` from `fitness-pal/.env.example`.
+Create `.env.local` from `.env.example`.
 
-Required for a fully working local app:
+```bash
+cp .env.example .env.local
+```
 
-- `AUTH_SECRET`: secret used by NextAuth.
-- `DATABASE_URL`: MySQL connection string.
+Core settings:
 
-Optional:
-
-- `YOUTUBE_API_KEY`: YouTube Data API key. If omitted, exercise pages use a static fallback video.
-- `AUTH_TRUST_HOST`: set to `true` for hosted environments that need it.
+- `APP_MODE`: `demo` or `live`. Defaults to `demo`.
+- `AUTH_SECRET`: required by NextAuth in both modes.
+- `AUTH_TRUST_HOST`: set to `true` for hosted environments that require trusted proxy headers.
+- `DATABASE_URL`: required only when `APP_MODE=live`.
+- `YOUTUBE_API_KEY`: optional. If omitted, exercise pages use a static fallback video.
 
 Do not commit real `.env` files or production credentials.
 
-## Database Setup
+## Live MySQL Setup
 
-The schema is in `fitness-pal/src/database/schema.sql`.
+The schema is in `src/database/schema.sql`, and workout save procedures are in `src/database/workoutPage.sql`.
 
-For local development:
+For local live mode:
 
-1. Create a MySQL database.
-2. Run the schema SQL.
-3. Put the connection string in `DATABASE_URL`.
-4. Optionally import seed CSVs with:
+1. Start a local MySQL server.
+2. Run `src/database/schema.sql`.
+3. Run the procedure definitions in `src/database/workoutPage.sql`.
+4. Create a least-privilege app user and set `DATABASE_URL`.
+5. Optionally import seed CSVs.
 
 ```bash
-cd fitness-pal
-python src/database/import_data.py --data-dir /path/to/csv-directory
+mysql -u root < src/database/schema.sql
+mysql -u root srsly_fit < src/database/workoutPage.sql
+
+mysql -u root -e "CREATE USER IF NOT EXISTS 'srsly_app'@'127.0.0.1' IDENTIFIED BY 'local-password'; GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON srsly_fit.* TO 'srsly_app'@'127.0.0.1'; FLUSH PRIVILEGES;"
+
+python3 -m venv .venv
+.venv/bin/python -m pip install mysql-connector-python
+
+.venv/bin/python src/database/import_data.py --data-dir /path/to/csv-directory --truncate
 ```
 
-The importer expects these CSV files in the data directory:
+Run seed imports with the local root MySQL account. The `--truncate` path resets auto-increment values and needs table `ALTER` privileges; the running web app should still use the restricted `srsly_app` account.
+
+The importer expects these CSV files:
 
 - `Users.csv`
 - `Muscles.csv`
@@ -75,15 +97,41 @@ The importer expects these CSV files in the data directory:
 - `WorkoutTemplates.csv`
 - `WorkoutContents.csv`
 
+## Deployment Safeguards
+
+Use `APP_MODE=demo` for public portfolio deployments unless the live database and API keys are intentionally provisioned.
+
+For the first public portfolio link, deploy to Vercel in read-only demo mode:
+
+- `APP_MODE=demo`
+- `AUTH_SECRET=<generated secret>`
+- `AUTH_TRUST_HOST=true`
+- `DATABASE_URL=`
+- `YOUTUBE_API_KEY=`
+
+This demo deployment does not require MySQL, does not call the YouTube API, and blocks write actions with read-only messages.
+
+For future live deployments:
+
+- Restrict `YOUTUBE_API_KEY` by HTTP referrer or hosting origin.
+- Set YouTube API quota alerts and low daily limits.
+- Use a least-privilege MySQL user for the deployed app.
+- Store credentials in the hosting provider's secret manager.
+- Keep write access private until password hashing, rate limiting, and abuse controls are added.
+
 ## Verification
 
 ```bash
-cd fitness-pal
-npm run build
+npm run lint
+npm run demo:build
+npm run typecheck
+npm run test
+npm run test:e2e
+npm audit --audit-level=moderate
 ```
 
-The `lint` script currently points at the legacy `next lint` command, which is no longer available in newer Next.js releases. Updating lint tooling is a follow-up polish task.
+For a live-mode compile check without connecting to MySQL during build:
 
-## Portfolio Notes
-
-This first pass intentionally avoids broad product renaming from the original internal `fitness-pal` app folder. Future polish should rename visible package/app references to `srsly-fit`, add seed data that can be shared publicly, and replace the credentials auth prototype with a production-grade password hashing flow.
+```bash
+APP_MODE=live AUTH_SECRET=local-build-secret DATABASE_URL=mysql://user:password@127.0.0.1:3306/srsly_fit YOUTUBE_API_KEY= npm run build
+```
