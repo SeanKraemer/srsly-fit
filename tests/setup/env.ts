@@ -1,0 +1,5 @@
+process.env.APP_MODE ??= 'demo'
+process.env.AUTH_SECRET ??= 'test-auth-secret'
+process.env.AUTH_TRUST_HOST ??= 'true'
+process.env.DATABASE_URL ??= ''
+process.env.YOUTUBE_API_KEY ??= ''
