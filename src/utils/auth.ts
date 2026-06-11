@@ -81,7 +81,7 @@ const nonEdgeAuthConfigObject = {
             name: `${user.firstName} ${user.lastName}`,
           }
         } catch (error) {
-            console.log(`AUTHORIZE ERROR: ${error}`)
+            console.error(`AUTHORIZE ERROR: ${error}`)
             throw error
         } finally {
           if (conn) await conn.end()

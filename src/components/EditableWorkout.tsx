@@ -369,9 +369,8 @@ export default function EditableWorkout({ workoutId, userId, workoutData, exerci
                 throw new Error(errorData.message || 'Failed to save workout');
             }
 
-            const result = await response.json();
+            await response.json();
             setMessage(finishWorkout ? 'Workout finished and saved successfully!' : 'Workout saved successfully!');
-            console.log('Save successful:', result);
 
             // If the workout was finished, reset the timer to 0.
             if (finishWorkout) {

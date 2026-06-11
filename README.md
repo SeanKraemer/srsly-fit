@@ -1,37 +1,39 @@
 # Srsly Fit
 
-Srsly Fit is a full-stack workout planning and tracking app built with Next.js, React, NextAuth, and MySQL. It supports exercise search, workout templates, set tracking, completion history, and exercise demonstration videos.
+[![CI](https://github.com/SeanKraemer/srsly-fit/actions/workflows/ci.yml/badge.svg)](https://github.com/SeanKraemer/srsly-fit/actions/workflows/ci.yml)
 
-This portfolio version is prepared for public review with a safe read-only demo mode. Demo mode uses seeded fixtures, a demo login, and a static video fallback, so it can run without live database credentials or YouTube API quota.
+Srsly Fit is a full-stack workout planning and tracking app built with Next.js, React, NextAuth, and MySQL. It supports exercise search across a ~2,900-exercise catalog, workout templates with ordered exercises and sets, completion tracking, exercise-suggestion based on training history, and embedded demonstration videos.
 
-Live demo: [https://srsly-fit.vercel.app](https://srsly-fit.vercel.app)
+Originated as a four-person team project for UIUC's CS 411 Database Systems graduate course (Summer 2025); this repository is my portfolio fork, reworked for safe public deployment. The database design artifacts are in [docs/](docs/).
+
+**Live demo:** [https://srsly-fit.vercel.app](https://srsly-fit.vercel.app) — click **Continue as Demo User**. The demo is read-only: it runs on seeded fixtures with no live database, and every write path returns a friendly read-only message instead of mutating anything.
+
+![Demo: demo login, dashboard, exercise search, workout editor with set tracking, and a blocked save showing the read-only demo guard](docs/demo.gif)
+
+*One take: log in as the demo user, browse the dashboard, search exercises by keyword and muscle, open a workout template with sets, then attempt a save — blocked by the server-side demo guard with a clear read-only message.*
 
 ## My Contribution
 
-I owned the public-ready full-stack pass for this app: Next.js routing and UI cleanup, credentials auth integration, MySQL query and stored-procedure integration, workout/exercise flows, demo-mode isolation, environment documentation, and deployment-safety notes.
+During the course, this was a four-person team project; my areas were the interactive workout editor (drag-and-drop exercise/set editing with dnd-kit), the advanced SQL — exercise-suggestion query and stored-procedure integration — and the workout save flow. The portfolio pass is entirely mine: demo/live mode isolation, server-side read-only guards, environment validation, the credentials auth cleanup, unit and end-to-end tests, deployment hardening, and all documentation.
 
 ## What It Does
 
-- Authenticates users with a credentials-based NextAuth flow.
+- Authenticates users with a credentials-based NextAuth flow (JWT sessions).
 - Lists and filters exercises by keyword and target muscle.
 - Lets users view exercise details and embedded demonstration videos.
-- Builds workout templates with ordered exercises and sets.
+- Builds workout templates with ordered exercises and per-set weight/rep tracking.
 - Tracks workout completion duration and exercise history in live mode.
-- Suggests exercises based on prior completion history in live mode or seeded fixtures in demo mode.
+- Suggests exercises based on prior completion history, excluding disliked ones.
 
 ## Architecture
 
-- `src/app`: Next.js App Router pages and API routes.
+- `src/app`: Next.js App Router pages and API routes. Every mutation route checks demo mode server-side and returns a 403 read-only response before touching the database.
 - `src/components`: Client and server UI components for navigation, search, workout editing, cards, and auth forms.
-- `src/data`: Demo/live data boundary. Demo mode returns fixtures; live mode calls MySQL through the lazy pool in `src/database/pool.ts`.
-- `src/database`: MySQL schema, import helper, and query/procedure setup references.
+- `src/data`: The demo/live data boundary. Demo mode returns seeded fixtures; live mode calls MySQL through the lazy pool in `src/database/pool.ts`.
+- `src/database`: MySQL schema (8 tables, normalized to BCNF), stored procedures, query references, and a CSV seed importer.
 - `src/utils/auth.ts`: NextAuth configuration for demo credentials and live MySQL-backed credentials.
 
-## Project Documentation
-
-The `docs/` directory includes the database design artifacts and an archived Summer 2025 project document for additional context on the original product scope and data model.
-
-For local server, MySQL, and seed-data commands, see [`docs/local-development-cheatsheet.md`](docs/local-development-cheatsheet.md).
+The database layer is intentionally raw SQL rather than an ORM: parameterized `mysql2` queries, two stored procedures (`UpdateInsertCompletedWorkout`, `UpdateInsertTemplateOnly`) that save a workout's template, contents, and sets atomically inside `REPEATABLE READ` transactions, and an exercise-suggestion query that filters by muscle group, completion count, and user preference.
 
 ## Quick Start
 
@@ -88,7 +90,7 @@ python3 -m venv .venv
 
 Run seed imports with the local root MySQL account. The `--truncate` path resets auto-increment values and needs table `ALTER` privileges; the running web app should still use the restricted `srsly_app` account.
 
-The importer expects these CSV files:
+The importer expects these CSV files (the original exercise catalog was seeded from the public megaGym exercise dataset, which is not redistributed in this repo):
 
 - `Users.csv`
 - `Muscles.csv`
@@ -103,7 +105,7 @@ The importer expects these CSV files:
 
 Use `APP_MODE=demo` for public portfolio deployments unless the live database and API keys are intentionally provisioned.
 
-For the first public portfolio link, deploy to Vercel in read-only demo mode:
+The public demo deploys to Vercel in read-only demo mode:
 
 - `APP_MODE=demo`
 - `AUTH_SECRET=<generated secret>`
@@ -121,13 +123,15 @@ For future live deployments:
 - Store credentials in the hosting provider's secret manager.
 - Keep write access private until password hashing, rate limiting, and abuse controls are added.
 
-## Verification
+## Testing
+
+Unit tests (Vitest) cover the demo-data fixtures, data transformations, and the read-only response contract. End-to-end tests (Playwright) boot the app in demo mode and verify the demo login, fixture-backed exercise search, and that workout saves and creation are blocked read-only. CI runs all of this plus lint, typecheck, and the demo build on every push.
 
 ```bash
 npm run lint
-npm run demo:build
 npm run typecheck
 npm run test
+npm run demo:build
 npm run test:e2e
 npm audit --audit-level=moderate
 ```
@@ -137,3 +141,30 @@ For a live-mode compile check without connecting to MySQL during build:
 ```bash
 APP_MODE=live AUTH_SECRET=local-build-secret DATABASE_URL=mysql://user:password@127.0.0.1:3306/srsly_fit YOUTUBE_API_KEY= npm run build
 ```
+
+## Design Notes & Limitations
+
+- **Live-mode auth stores and compares plaintext passwords.** Inherited from the course project and deliberately left unfixed rather than half-fixed: the public deployment never exercises this path (demo mode has no database), and the README gates any live deployment on adding password hashing, rate limiting, and abuse controls first.
+- **Raw SQL over an ORM was a course requirement that became a design choice.** All queries are parameterized through `mysql2`, and multi-table workout saves go through stored procedures inside `REPEATABLE READ` transactions, which keeps the save path atomic without an ORM dependency.
+- **Demo mode is enforced server-side, not just hidden in the UI.** Every mutation API route checks the mode and returns 403 before any data access, so the public demo cannot be mutated even with direct API calls.
+- **Sessions are JWTs, not database sessions.** Chosen so demo mode works with zero infrastructure; the trade-off is no server-side session revocation.
+- **Query performance figures from the course (optimizer costs in the docs/ PDFs) are MySQL `EXPLAIN` cost estimates**, not measured latencies, and came from a small course dataset.
+- **The exercise catalog is not bundled.** The seed importer expects CSVs locally; the original Kaggle-sourced dataset is not redistributed here.
+
+## Project Documentation
+
+The `docs/` directory includes the original database design artifacts: the ER diagram and assumptions, the relational design, and the BCNF normalization analysis.
+
+For local server, MySQL, and seed-data commands, see [`docs/local-development-cheatsheet.md`](docs/local-development-cheatsheet.md).
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4, dnd-kit
+- **Auth**: NextAuth 5 (credentials provider, JWT sessions)
+- **Database**: MySQL via `mysql2` (raw parameterized SQL + stored procedures)
+- **Testing**: Vitest, Playwright
+- **Deployment**: Vercel (read-only demo mode)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
